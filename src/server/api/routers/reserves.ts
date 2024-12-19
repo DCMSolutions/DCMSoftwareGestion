@@ -299,25 +299,26 @@ export const reserveRouter = createTRPCRouter({
         .delete(schema.reservas)
         .where(eq(schema.reservas.nReserve, input.nReserve));
     }),
-  getLastReserveByBox: publicProcedure.query(async () => {
-    // Obtener todas las reservas ordenadas por FechaFin de manera descendente
-    const result = await db.query.reservas.findMany({
-      where: isNotNull(schema.reservas.IdBox),
-      orderBy: (reservas, { desc }) => [desc(reservas.FechaFin)],
+  getLastReserveByBox: publicProcedure.query(async ({ ctx }) => {
+    // Obtener todas las reservas
+    const reservas = await ctx.db.query.reservas.findMany({
+      with: { clients: true }, // Asegúrate de incluir `clients`
+      where: (reservas) => isNotNull(reservas.IdBox),
+      orderBy: (reservas, { desc }) => [desc(reservas.FechaFin)], // Ordenar por FechaFin descendente
     });
 
-    // Agrupar por IdBox y obtener la última reserva por cada grupo
-    const lastReservesByBox = result.reduce(
-      (acc: Record<number, (typeof result)[0]>, reserva) => {
+    // Agrupar por `IdBox` y mantener solo la última reserva por caja
+    const lastReservesByBox = reservas.reduce(
+      (acc, reserva) => {
         if (!acc[reserva.IdBox!]) {
-          acc[reserva.IdBox!] = reserva;
+          acc[reserva.IdBox!] = reserva; // Mantener solo la primera reserva encontrada
         }
         return acc;
       },
-      {},
+      {} as Record<number, (typeof reservas)[number]>,
     );
 
-    // Convertir el resultado en un array
+    // Devolver el resultado como un arreglo
     return Object.values(lastReservesByBox);
   }),
 });
