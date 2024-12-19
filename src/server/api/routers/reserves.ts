@@ -299,6 +299,27 @@ export const reserveRouter = createTRPCRouter({
         .delete(schema.reservas)
         .where(eq(schema.reservas.nReserve, input.nReserve));
     }),
+  getLastReserveByBox: publicProcedure.query(async () => {
+    // Obtener todas las reservas ordenadas por FechaFin de manera descendente
+    const result = await db.query.reservas.findMany({
+      where: isNotNull(schema.reservas.IdBox),
+      orderBy: (reservas, { desc }) => [desc(reservas.FechaFin)],
+    });
+
+    // Agrupar por IdBox y obtener la última reserva por cada grupo
+    const lastReservesByBox = result.reduce(
+      (acc: Record<number, (typeof result)[0]>, reserva) => {
+        if (!acc[reserva.IdBox!]) {
+          acc[reserva.IdBox!] = reserva;
+        }
+        return acc;
+      },
+      {},
+    );
+
+    // Convertir el resultado en un array
+    return Object.values(lastReservesByBox);
+  }),
 });
 
 export type Reserves = RouterOutputs["reserve"]["getBynReserve"][number];

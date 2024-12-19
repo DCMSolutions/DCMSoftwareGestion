@@ -13,7 +13,7 @@ export default async function Home() {
   const [lockers, stores, reservas] = await Promise.all([
     api.locker.get.query(),
     api.store.get.query(),
-    api.reserve.list.query(),
+    api.reserve.getLastReserveByBox.query(),
   ]);
 
   return (
