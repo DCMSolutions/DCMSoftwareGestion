@@ -3,7 +3,7 @@ import { type Transaction } from "@libsql/client";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Script from "next/script";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 /* import {
   AlertDialog,
   AlertDialogCancel,
@@ -274,11 +274,13 @@ export default function Payment(props: {
     );
   } */
 
+  const mpDone = useMemo(() => typeof mpPaymentId === 'string' && mpPaymentId !== '', [mpPaymentId]);
+
   return (
     <>
       <>
         {medioConfigurado === PublicConfigMetodoPago.mercadopago && mpClavePrimeraCarga && <>
-          <PaymentMp
+          { !mpDone && <PaymentMp
             initialization={{
               amount: props.total,
               payer: {
@@ -319,8 +321,8 @@ export default function Payment(props: {
 
               console.log('status', res);
             }}
-          />
-          { mpPaymentId && mpPaymentId !== '' && <StatusScreen initialization={{ paymentId: mpPaymentId }} /> }
+          /> }
+          { mpDone && <StatusScreen initialization={{ paymentId: mpPaymentId }} /> }
         </> }
         {medioConfigurado === PublicConfigMetodoPago.mobbex && <>
           <Script
