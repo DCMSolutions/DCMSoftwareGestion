@@ -210,13 +210,17 @@ function FormMetodoPago({ invalidate }: { invalidate: () => void }) {
   const [metodo, setMetodo] = useState<PublicConfigMetodoPagoKeys>("mercadopago");
   const [clave1, setClave1] = useState("");
   const [clave2, setClave2] = useState("");
+  const [clave3, setClave3] = useState("");
+  const [clave4, setClave4] = useState("");
   const { mutateAsync: setPrivateKey, isLoading: isLoadingPrivate } = api.config.setPrivateKeyAdmin.useMutation();
   const { mutateAsync: setPublicKey, isLoading: isLoadingPublic } = api.config.setPublicKeyAdmin.useMutation();
   const { data: claveOriginalMetodo, refetch: refetch1 } = api.config.getKey.useQuery({ key: 'metodo_pago' });
   const { data: claveOriginalPublicaMp, refetch: refetch2 } = api.config.getKey.useQuery({ key: 'mercadopago_public_key' });
   const { data: claveOriginalPrivadaMp, refetch: refetch3 } = api.config.getPrivateKey.useQuery({ key: 'mercadopago_private_key' });
-  const { data: claveMobbexApi, refetch: refetch4 } = api.config.getPrivateKey.useQuery({ key: 'mobbex_api_key' });
-  const { data: claveMobbexToken, refetch: refetch5 } = api.config.getPrivateKey.useQuery({ key: 'mobbex_access_token' });
+  const { data: claveOriginalWhMp, refetch: refetch4 } = api.config.getPrivateKey.useQuery({ key: 'mercadopago_webhook_key' });
+  const { data: claveOriginalWhUrl, refetch: refetch5 } = api.config.getPrivateKey.useQuery({ key: 'mercadopago_webhook_url' });
+  const { data: claveMobbexApi, refetch: refetch6 } = api.config.getPrivateKey.useQuery({ key: 'mobbex_api_key' });
+  const { data: claveMobbexToken, refetch: refetch7 } = api.config.getPrivateKey.useQuery({ key: 'mobbex_access_token' });
 
   const isLoading = isLoadingPrivate || isLoadingPublic;
 
@@ -239,6 +243,14 @@ function FormMetodoPago({ invalidate }: { invalidate: () => void }) {
       setClave2("");
     }
 
+    if (metodo === 'mercadopago' && claveOriginalWhMp) {
+      setClave3(claveOriginalWhMp.value);
+    }
+
+    if (metodo === 'mercadopago' && claveOriginalWhUrl) {
+      setClave4(claveOriginalWhUrl.value);
+    }
+
     if (metodo === 'mobbex' && claveMobbexApi) {
       setClave1(claveMobbexApi.value);
     } else if (metodo === 'mobbex') {
@@ -250,7 +262,7 @@ function FormMetodoPago({ invalidate }: { invalidate: () => void }) {
     } else if (metodo === 'mobbex') {
       setClave2("");
     }
-  }, [metodo, claveOriginalPublicaMp, claveOriginalPrivadaMp, claveMobbexApi, claveMobbexToken, claveOriginalMetodo]);
+  }, [metodo, claveOriginalPublicaMp, claveOriginalPrivadaMp, claveMobbexApi, claveMobbexToken, claveOriginalMetodo, claveOriginalWhUrl, claveOriginalWhMp]);
 
   async function handle() {
     await setPublicKey({ key: 'metodo_pago', value: metodo });
@@ -261,6 +273,8 @@ function FormMetodoPago({ invalidate }: { invalidate: () => void }) {
     } else if (metodo === 'mercadopago') {
       await setPublicKey({ key: 'mercadopago_public_key', value: clave1 });
       await setPrivateKey({ key: 'mercadopago_private_key', value: clave2 });
+      await setPrivateKey({ key: 'mercadopago_webhook_key', value: clave3 });
+      await setPrivateKey({ key: 'mercadopago_webhook_url', value: clave4 });
     }
 
     // no furula api.useUtils()
@@ -269,6 +283,8 @@ function FormMetodoPago({ invalidate }: { invalidate: () => void }) {
     await refetch3();
     await refetch4();
     await refetch5();
+    await refetch6();
+    await refetch7();
 
     invalidate();
     setOpen(false);
@@ -323,6 +339,26 @@ function FormMetodoPago({ invalidate }: { invalidate: () => void }) {
               required
             />
           </div>
+
+          {metodo === 'mercadopago' && <div className="font-bold">
+            <Label htmlFor="clave3">Clave secreta de Webhook de Mercado Pago</Label>
+            <Input
+              id="clave3"
+              value={clave3}
+              onChange={(e) => setClave3(e.target.value)}
+              required
+            />
+          </div>}
+
+          {metodo === 'mercadopago' && <div className="font-bold">
+            <Label htmlFor="clave4">URL de Webhook de Mercado Pago</Label>
+            <Input
+              id="clave4"
+              value={clave4}
+              onChange={(e) => setClave4(e.target.value)}
+              required
+            />
+          </div>}
         </div>
         <DialogFooter className="sm:justify-center">
           <Button

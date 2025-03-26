@@ -44,6 +44,25 @@ export const mpRouter = createTRPCRouter({
       }>(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const claveConfigMpWhUrl: PrivateConfigKeys = 'mercadopago_webhook_url';
+      const claveMpWhUrl = await ctx.db.query.privateConfig.findFirst({
+        where: eq(schema.privateConfig.key, claveConfigMpWhUrl)
+      });
+
+      if (!claveMpWhUrl) {
+        console.error('No está configurada la clave privada de mercado pago');
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      }
+
+      let whUrl = claveMpWhUrl.value;
+      if (!whUrl.startsWith("http")) {
+        whUrl = "https://" + whUrl;
+      }
+
+      if (!whUrl.endsWith("/")) {
+        whUrl += "/";
+      }
+
       const r = [...(new Set(input.IdTransactions))];
       if (r.length <= 0) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: "Reservas inválidas" });
@@ -98,7 +117,7 @@ export const mpRouter = createTRPCRouter({
       try {
         const res = await preference.create({
           body: {
-            notification_url: `https://${process.env.VERCEL_URL}/api/mp-pago?source_news=webhooks`,
+            notification_url: `${whUrl}api/mp-pago?source_news=webhooks`,
             items: [
               {
                 id: "id",

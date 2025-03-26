@@ -69,6 +69,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(null, { status: 502 });
   }
 
+  const claveConfigMpWh: PrivateConfigKeys = 'mercadopago_webhook_key';
+  const claveMpWh = await db.query.privateConfig.findFirst({
+    where: eq(schema.privateConfig.key, claveConfigMpWh)
+  });
+
+  if (!claveMpWh) {
+    console.error('mp-pago: No está configurada la clave privada de webhook mercado pago');
+    return NextResponse.json(null, { status: 502 });
+  }
+
   const res = await request.json() as object;
   if (typeof res !== 'object') {
     console.error("mp-pago: api mp res no es object");
@@ -91,8 +101,8 @@ export async function POST(request: NextRequest) {
   }
 
   const dataID = request.nextUrl.searchParams.get('data.id') ?? body.data.id;
-  if (!validateHmac(dataID, xSignature ?? "", xRequestId ?? "", claveMp.value)) {
-    console.error("mp-pago: api mp firma invalida");
+  if (!validateHmac(dataID, xSignature ?? "", xRequestId ?? "", claveMpWh.value)) {
+    console.error("mp-pago: api mp firma invalida", dataID, xSignature, xRequestId);
     return NextResponse.json(null, { status: 400 });
   }
 
