@@ -23,6 +23,7 @@ export type Reserve = {
   IdBox: number | null;
   IdFisico: number | null;
   Token1: number | null;
+  Token2: number | null;
   FechaCreacion: string | null;
   FechaInicio: string | null;
   FechaFin: string | null;

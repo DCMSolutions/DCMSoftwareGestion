@@ -65,6 +65,7 @@ export default function StorePage(props: {
   const [organizationName, setOrganizationName] = useState(
     props.store.organizationName!,
   );
+  const [firstTokenUseTime, setFirstTokenUseTime] = useState(props.store.firstTokenUseTime!);
   const [loading, setLoading] = useState(false);
   const { mutateAsync: renameStore, isLoading } =
     api.store.change.useMutation();
@@ -86,7 +87,8 @@ export default function StorePage(props: {
         address,
         organizationName,
         description,
-        serieLockers: serieLockers
+        serieLockers,
+        firstTokenUseTime
       });
       toast.success("Se ha modificado el local.");
       router.refresh();
@@ -201,6 +203,14 @@ export default function StorePage(props: {
                         // Do something with the error.
                         alert(`ERROR! ${error.message}`);
                       }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tokenUseTime">Minutos para caducar el primer token</Label>
+                    <Input
+                      id="tokenUseTime"
+                      value={firstTokenUseTime!}
+                      onChange={(e) => setFirstTokenUseTime(parseInt(e.target.value))}
                     />
                   </div>
                 </div>

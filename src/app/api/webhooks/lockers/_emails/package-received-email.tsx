@@ -1,6 +1,7 @@
 import { Html } from "@react-email/components"
+import { ReactNode } from "react"
 
-export default function PackageReceivedEmail({ lockerAddress, checkoutTime, userToken }: { lockerAddress: string, checkoutTime: string, userToken: string }) {
+export default function PackageReceivedEmail({ lockerAddress, checkoutTime, userToken }: { lockerAddress: string, checkoutTime: string, userToken: string }): ReactNode {
 	return (
 		<Html lang="es">
 			<body>

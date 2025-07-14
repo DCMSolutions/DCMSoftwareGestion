@@ -51,6 +51,7 @@ export const stores = sqliteTable(
     address: text("address", { length: 255 }),
     organizationName: text("organizationName", { length: 255 }),
     description: text("description", { length: 255 }),
+    firstTokenUseTime: integer("first_token_use_time").default(15)
   },
   (vt) => ({
     compoundKey: primaryKey(vt.identifier),
@@ -152,6 +153,7 @@ export const reservas = sqliteTable(
     IdBox: integer("IdBox"),
     IdFisico: integer("IdFisico"),
     Token1: integer("Token1"),
+    Token2: integer("Token2"),
     FechaCreacion: text("FechaCreacion", { length: 255 }),
     FechaInicio: text("FechaInicio", { length: 255 }),
     FechaFin: text("FechaFin", { length: 255 }),

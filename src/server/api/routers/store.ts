@@ -104,6 +104,7 @@ export const storeRouter = createTRPCRouter({
         organizationName: z.string().min(0).max(1023),
         description: z.string().min(0).max(1023),
         serieLockers: z.array(z.string()).nullable(),
+        firstTokenUseTime: z.number()
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -125,6 +126,7 @@ export const storeRouter = createTRPCRouter({
             address: input.address,
             description: input.description,
             organizationName: input.organizationName,
+            firstTokenUseTime: input.firstTokenUseTime
           })
           .where(eq(stores.identifier, input.identifier));
 

@@ -35,7 +35,8 @@ export async function editTokenToServer(token: TokenRequestEditionBody, lockerSe
 export async function sendAfterFirstUseEmail({ to, lockerAddress, checkoutTime, userToken }: { to: string, lockerAddress: string, checkoutTime: string, userToken: string }) {
 
 	// const qrCode = await QRCode.toDataURL(userToken);
-
+	const fechaFin = checkoutTime.split('T')[0]
+	const horaFin = checkoutTime.split('T')[1]
 	sendgrid.setApiKey(env.SENDGRID_API_KEY);
 	const msg = {
 		to,
@@ -44,7 +45,7 @@ export async function sendAfterFirstUseEmail({ to, lockerAddress, checkoutTime, 
 		html: `
 			<body>
 
-				<p>El paquete destinado a su locker reservado en ${lockerAddress} fue entregado. Le recordamos que el tiempo límite para pasarlo a buscar es ${checkoutTime}</p>
+				<p>El paquete destinado a su locker reservado en ${lockerAddress} fue entregado. Le recordamos que el tiempo límite para pasarlo a buscar es ${horaFin} del ${fechaFin}</p>
 
 				<p><strong>Su código de acceso (Token) para el locker que contiene su paquete es ${userToken}</strong></p>
 

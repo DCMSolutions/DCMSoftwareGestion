@@ -33,6 +33,8 @@ export default async function ReservesComponent({ stores, ...props }: {
       .map((reserve) => ({
         dataReserve: reserve,
         nReserve: reserve.nReserve,
+        token1: reserve.Token1,
+        token2: reserve.Token2,
         storeName:
           stores?.find((x) => x.lockers.some(l => l.serieLocker === reserve.NroSerie))
             ?.name ?? "-",

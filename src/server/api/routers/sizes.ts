@@ -74,10 +74,11 @@ async function disponibilidad(nroSerieLocker: string, inicio: string | null, fin
 
   // Handle the response from the external API
   if (!sizeResponse.ok) {
-    const errorResponse = await sizeResponse.json();
+    const errorResponse = await sizeResponse.text();
     // Throw an error or return the error message
     return errorResponse.message || "Unknown error";
   }
+
 
   const reservedBoxData = await sizeResponse.json();
   const validatedData = responseValidator.parse(reservedBoxData);
@@ -92,7 +93,7 @@ async function sizeExpand(v: LockerSize, localId: string): Promise<LockerSize> {
       eq(schema.feeData.localId, localId),
     ),
   });
-  
+
   v.tarifa = fee?.identifier;
 
   const existingSize = await db.query.sizes.findFirst({

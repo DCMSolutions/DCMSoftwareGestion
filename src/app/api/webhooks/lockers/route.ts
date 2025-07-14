@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { EVENTS, type TokenUseResponseData, type LockerWebhook, TokenRequestCreationBody, TokenRequestEditionBody } from "./types";
 import { db } from "~/server/db";
 import { Reserve } from "~/server/api/routers/reserves";
-import { reservas } from "~/server/db/schema";
+import { lockers, reservas, stores, storesLockers } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { addTokenToServer, editTokenToServer, sendAfterFirstUseEmail, sendGoodbyeEmail } from "./helpers";
 
@@ -28,7 +28,11 @@ export async function POST(request: NextRequest) {
 				return NextResponse.json({ status: 200 })
 			}
 			const webhookEventTime = new Date(wh.fechaCreacion)
-			webhookEventTime.setMinutes(webhookEventTime.getMinutes() + 1 - (180))
+			const tokenUseExtraTimeDbResult = await db.select({ minutes: stores.firstTokenUseTime }).from(stores)
+				.innerJoin(storesLockers, eq(stores.identifier, storesLockers.storeId))
+				.where(eq(storesLockers.serieLocker, wh.nroSerieLocker))
+			const { minutes: tokenUseExtraTime } = tokenUseExtraTimeDbResult[0]!
+			webhookEventTime.setMinutes(webhookEventTime.getMinutes() + tokenUseExtraTime! - (180))
 			let newLimit = webhookEventTime.toISOString().split('.')[0]
 			console.log(newLimit)
 			const tokenEditBody: TokenRequestEditionBody = {
@@ -42,12 +46,12 @@ export async function POST(request: NextRequest) {
 				const error = await editToken1Response.text()
 				console.log(error)
 			}
-			webhookEventTime.setMinutes(webhookEventTime.getMinutes() + 1)
-			newLimit = webhookEventTime.toISOString().split('.')[0]
+			webhookEventTime.setSeconds(webhookEventTime.getSeconds() + 10)
+			const newTokenStartTime = webhookEventTime.toISOString().split('.')[0]
 			const newToken: TokenRequestCreationBody = {
 				idSize: reservation?.IdSize!,
 				idBox: whData.Box!,
-				fechaInicio: newLimit,
+				fechaInicio: newTokenStartTime,
 				fechaFin: reservation?.FechaFin!,
 				confirmado: true
 			}
