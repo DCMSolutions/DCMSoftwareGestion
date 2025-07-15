@@ -74,7 +74,7 @@ async function disponibilidad(nroSerieLocker: string, inicio: string | null, fin
 
   // Handle the response from the external API
   if (!sizeResponse.ok) {
-    const errorResponse = await sizeResponse.text();
+    const errorResponse = await sizeResponse.json();
     // Throw an error or return the error message
     return errorResponse.message || "Unknown error";
   }
