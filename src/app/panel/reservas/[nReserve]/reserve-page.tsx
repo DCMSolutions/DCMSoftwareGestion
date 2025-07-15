@@ -279,11 +279,11 @@ export default function ReservePage(props: {
           </div>
           <div className="flex justify-center bg-[#e2f0e9] py-1">
             <div className=" pb-3 pt-3 text-sm">
-              <div className="grid grid-cols-2 gap-x-28">
-                {reserve.map((r) => {
-                  return (
+              {reserve.map((r) => {
+                return (
+                  <div className="flex flex-row gap-2">
                     <div
-                      key={r.IdSize}
+                      key={r.Token1}
                       className="flex flex-col items-start text-sm"
                     >
                       <div className="py-3 font-semibold">
@@ -297,7 +297,7 @@ export default function ReservePage(props: {
                           />
                         </p>
                         <div className="flex items-center text-sm">
-                          <p>Token ({getSize(r.IdSize!)})</p>
+                          <p>Token de repartidor ({getSize(r.IdSize!)})</p>
                           <p className="px-4 text-[#848484]">{r.Token1}</p>
                         </div>{" "}
                         <div className="flex items-center text-sm">
@@ -310,9 +310,39 @@ export default function ReservePage(props: {
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                    {r.Token2 &&
+                      <div
+                        key={r.Token2}
+                        className="flex flex-col items-start text-sm"
+                      >
+                        <div className="py-3 font-semibold">
+                          <p>
+                            <QRCode
+                              className="w-full"
+                              size={256}
+                              style={{ height: "auto", width: "50%" }}
+                              value={r.Token2?.toString() ?? "0"}
+                              viewBox={`0 0 256 256`}
+                            />
+                          </p>
+                          <div className="flex items-center text-sm">
+                            <p>Token de usuario ({getSize(r.IdSize!)})</p>
+                            <p className="px-4 text-[#848484]">{r.Token2}</p>
+                          </div>{" "}
+                          <div className="flex items-center text-sm">
+                            <p>Box</p>
+                            <p className="px-4 text-[#848484]">
+                              {r.IdFisico ?? (
+                                <a className="text-xs">Sin asignar</a>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                );
+              })}
             </div>
           </div>
 
