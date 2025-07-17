@@ -64,7 +64,7 @@ export async function sendAfterFirstUseEmail({ to, lockerAddress, checkoutTime, 
 	};
 	sendgrid.send(msg)
 		.then(() => {
-			console.log("Email sent");
+			console.log("Mail de aviso de token de repartidor usado");
 		})
 		.catch((e: any) => {
 			console.log(e);
@@ -100,9 +100,16 @@ export async function sendGoodbyeEmail({ to }: { to: string }) {
 	};
 	sendgrid.send(msg)
 		.then(() => {
-			console.log("Email sent");
+			console.log("Email de token de usuario usado");
 		})
 		.catch((e: any) => {
 			console.log(e);
 		});
+}
+
+export function isWithinDates(start: string, end: string) {
+	const startDate = new Date(start)
+	const endDate = new Date(end)
+	const now = new Date(Date.now())
+	return startDate <= now && now <= endDate
 }
