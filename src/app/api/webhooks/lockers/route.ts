@@ -59,11 +59,13 @@ export async function POST(request: NextRequest) {
 			}
 			webhookEventTime.setSeconds(webhookEventTime.getSeconds() + 10)
 			const newTokenStartTime = webhookEventTime.toISOString().split('.')[0]
+			webhookEventTime.setMinutes(webhookEventTime.getMinutes() + tokenUseExtraTime!)
+			const newTokenEndTime = webhookEventTime.toISOString().split('.')[0]
 			const newToken: TokenRequestCreationBody = {
 				idSize: reservation?.IdSize!,
 				idBox: webhookData.Box!,
 				fechaInicio: newTokenStartTime,
-				fechaFin: reservation?.FechaFin!,
+				fechaFin: newTokenEndTime,
 				confirmado: true
 			}
 			console.log('Token de usuario a crear: ', newToken)
