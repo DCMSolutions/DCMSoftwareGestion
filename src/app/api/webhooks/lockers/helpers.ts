@@ -62,13 +62,12 @@ export async function sendAfterFirstUseEmail({ to, lockerAddress, checkoutTime, 
 		// 	}
 		// ],
 	};
-	sendgrid.send(msg)
-		.then(() => {
-			console.log("Mail de aviso de token de repartidor usado");
-		})
-		.catch((e: any) => {
-			console.log(e);
-		});
+	try {
+		await sendgrid.send(msg)
+		console.log("Mail de aviso de token de repartidor usado");
+	} catch (error) {
+		console.log("Hubo un problema al enviar el mail. El error fue:", error);
+	}
 }
 
 export async function sendGoodbyeEmail({ to }: { to: string }) {
@@ -98,13 +97,12 @@ export async function sendGoodbyeEmail({ to }: { to: string }) {
 		// 	}
 		// ],
 	};
-	sendgrid.send(msg)
-		.then(() => {
-			console.log("Email de token de usuario usado");
-		})
-		.catch((e: any) => {
-			console.log(e);
-		});
+	try {
+		await sendgrid.send(msg)
+		console.log("Mail de aviso de token de usuario usado");
+	} catch (error) {
+		console.log("Hubo un problema al enviar el mail. El error fue:", error);
+	}
 }
 
 export function isWithinDates(start: string, end: string) {
