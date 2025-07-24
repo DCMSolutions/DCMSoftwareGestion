@@ -63,7 +63,10 @@ export async function sendAfterFirstUseEmail({ to, lockerAddress, checkoutTime, 
 		// ],
 	};
 	try {
+		console.time('MAIL DE AVISO DE PAQUETE LISTO')
 		await sendgrid.send(msg)
+		console.timeEnd('MAIL DE AVISO DE PAQUETE LISTO')
+
 		console.log("Mail de aviso de token de repartidor usado");
 	} catch (error) {
 		console.log("Hubo un problema al enviar el mail. El error fue:", error);
@@ -98,7 +101,10 @@ export async function sendGoodbyeEmail({ to }: { to: string }) {
 		// ],
 	};
 	try {
+		console.time('MAIL DE DESPEDIDA')
 		await sendgrid.send(msg)
+		console.timeEnd('MAIL DE DESPEDIDA')
+
 		console.log("Mail de aviso de token de usuario usado");
 	} catch (error) {
 		console.log("Hubo un problema al enviar el mail. El error fue:", error);
