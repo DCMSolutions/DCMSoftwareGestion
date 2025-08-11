@@ -63,6 +63,7 @@ export const transactionRouter = createTRPCRouter({
       z.object({
         startDate: z.string(),
         endDate: z.string(),
+        filterSerie: z.array(z.string()).nullable(),
         filterEntities: z.array(z.string()).nullable(),
       }),
     )
@@ -78,10 +79,23 @@ export const transactionRouter = createTRPCRouter({
         conditions.push(inArray(schema.transactions.entidadId, input.filterEntities));
       }
 
-      const result = await db.query.transactions.findMany({
+      let result = await db.query.transactions.findMany({
         where: and(...conditions),
+        with: {
+          reserve: {
+            columns: {
+              NroSerie: true,
+            }
+          }
+        },
         orderBy: (transaction, { asc }) => [asc(transaction.confirmedAt)],
       });
+
+      if (input.filterSerie && input.filterSerie.length > 0) {
+        result = result.filter(r => {
+          return input.filterSerie?.includes(r.reserve?.NroSerie ?? "");
+        });
+      }
 
       return result;
     }),

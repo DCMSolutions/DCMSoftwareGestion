@@ -59,6 +59,7 @@ export default function LockerOcupationPage() {
     api.transaction.getTransactionsByDate.useQuery({
       startDate,
       endDate,
+      filterSerie: lockersSerie,
       filterEntities: entidadesFiltro && entidadesFiltro.length > 0 ? entidadesFiltro : null,
     });
 

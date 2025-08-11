@@ -47,7 +47,7 @@
     "@trpc/server": "^10.45.2",
     "@uploadthing/react": "^6.7.2",
     "@supercharge/promise-pool": "^3.2.0",
-    "better-sqlite3": "^9.6.0",
+    "better-sqlite3": "^12.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^0.2.1",
