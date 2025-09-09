@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "~/env";
@@ -67,7 +68,13 @@ async function sizesList(localId?: string): Promise<z.infer<typeof responseValid
   return validatedData;
 }
 
-async function disponibilidad(nroSerieLocker: string, inicio: string | null, fin: string | null): Promise<z.infer<typeof responseValidator>> {
+// Precondición: inicio tiene que ser hoy, no se puede consultar por disponibilidad arrancando en el futuro.
+async function disponibilidad(nroSerieLocker: string, inicio: string, fin: string): Promise<z.infer<typeof responseValidator>> {
+  fin = format(
+    new Date((new Date(inicio)).getTime() + 86400000 - 1000),
+    "yyyy-MM-dd'T'HH:mm:ss"
+  ); // Fix de las tardanzas - solo consultamos por el dia completo.
+
   const sizeResponse = await fetch(
     `${env.SERVER_URL}/api/token/disponibilidadlocker/${nroSerieLocker}/${inicio}/${fin}`,
   );
@@ -132,8 +139,8 @@ export const sizeRouter = createTRPCRouter({
     .input(
       z.object({
         store: z.string(),
-        inicio: z.string().nullable(),
-        fin: z.string().nullable(),
+        inicio: z.string(),
+        fin: z.string(),
       }),
     )
     .query(async ({ input }) => {
