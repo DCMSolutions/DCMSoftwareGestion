@@ -18,13 +18,13 @@ export function PageRefresh() {
         content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
       />
       <meta name="theme-color" content="#5b9a8b" />
-      <title>Bagdrop | Espere...</title>
+      <title>Iguazú Lockers | Espere...</title>
       <meta name="robots" content="max-image-preview:large" />
-      <link rel="canonical" href="https://bagdrop.com.ar/" />
+      <link rel="canonical" href="https://iguazulockers.com/" />
 
       <meta property="og:site_name" content="Bagdrop | Pago" />
       <meta property="og:title" content="Pago" />
-      <meta property="og:url" content="https://bagdrop.com.ar/" />
+      <meta property="og:url" content="https://iguazulockers.com/" />
       <meta property="og:type" content="website" />
       <link rel="profile" href="https://gmpg.org/xfn/11" />
     </head>
