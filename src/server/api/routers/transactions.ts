@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { createId } from "~/lib/utils";
-import { and, gte, lte, isNotNull, eq, InferSelectModel } from "drizzle-orm";
+import { and, gte, lte, isNotNull, eq, InferSelectModel, inArray } from "drizzle-orm";
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
 import { RouterOutputs } from "~/trpc/shared";
 import { db, schema } from "~/server/db";
 import { transactions } from "~/server/db/schema";
+import { Reserve } from "./reserves";
 
 export const transactionRouter = createTRPCRouter({
   create: publicProcedure
@@ -67,7 +68,28 @@ export const transactionRouter = createTRPCRouter({
         orderBy: (transaction, { asc }) => [asc(transaction.confirmedAt)],
       });
 
-      return result;
+      const reservesByN = new Map<number, Reserve>();
+      const allNReserves = new Set(result.map(n => n.nReserve).filter(n => n != null));
+      if (allNReserves.size > 0) {
+        const reserves = await db.query.reservas.findMany({
+          where: inArray(schema.reservas.nReserve, Array.from(allNReserves))
+        });
+
+        for (const res of reserves) {
+          if (res.nReserve == null) {
+            continue;
+          }
+
+          reservesByN.set(res.nReserve, res);
+        }
+      }
+
+      return result.map(transaction => ({
+        ...transaction,
+        reserve: transaction.nReserve != null
+          ? reservesByN.get(transaction.nReserve)
+          : null,
+      }));
     }),
 });
 

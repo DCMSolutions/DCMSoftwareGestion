@@ -40,15 +40,6 @@ export default function AppSidenav(props: { isAdmin: boolean }) {
         )}
         {props.isAdmin && (
           <SidenavItem
-            icon={<AreaChartIcon />}
-            disabled={false}
-            href="/panel/reportes"
-          >
-            Reportes
-          </SidenavItem>
-        )}{" "}
-        {props.isAdmin && (
-          <SidenavItem
             icon={<CogIcon />}
             disabled={false}
             href="/panel/parametros"
@@ -57,6 +48,13 @@ export default function AppSidenav(props: { isAdmin: boolean }) {
           </SidenavItem>
         )}
         <SidenavSeparator>Administración</SidenavSeparator>
+        <SidenavItem
+          icon={<AreaChartIcon />}
+          disabled={false}
+          href="/panel/reportes"
+        >
+          Reportes
+        </SidenavItem>
         <SidenavItem icon={<LayoutDashboardIcon />} href="/panel/monitor">
           Monitor
         </SidenavItem>

@@ -15,7 +15,7 @@ import {
 
 import { TableCell } from "~/components/ui/table";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -37,6 +37,29 @@ export function DataTable<TData extends ClientTableRecord>({
   data,
 }: DataTableProps<TData, unknown>) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+
+  const filteredData = useMemo(() => {
+      if (!globalFilter) {
+        return data;
+      }
+      
+      const search = globalFilter.toLowerCase();
+      return data.filter((item) => {
+        const name = String(item.name ?? "").toLowerCase();
+        const surname = String(item.surname ?? "").toLowerCase();
+        const email = String(item.email ?? "").toLowerCase();
+        const telefono = String(item.telefono ?? "").toLowerCase();
+  
+        return (
+          name.includes(search) || 
+          email.includes(search) || 
+          surname.includes(search) ||
+          telefono.includes(search)
+        );
+      });
+    }, [data, globalFilter]);
+
   const table = useReactTable({
     data,
     columns,
@@ -46,22 +69,14 @@ export function DataTable<TData extends ClientTableRecord>({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     getFilteredRowModel: getFilteredRowModel(),
+    onGlobalFilterChange: setGlobalFilter, 
     state: {
       columnFilters,
+      globalFilter,
     },
-    // initialState: {
-    //   columnVisibility: {
-    //     id: false,
-    //     Marca: false,
-    //     Plan: false,
-    //     UN: false,
-    //     Modalidad: false,
-    //   },
-    // },
   });
 
   const allColumns = table.getAllColumns();
-
   const handleRowClick = (row: Row<TData>) => {
     const linked = (link: string) => {
       window.location.href = link;
@@ -71,7 +86,7 @@ export function DataTable<TData extends ClientTableRecord>({
 
   return (
     <>
-      <TableToolbar table={table} searchColumn={"name"} columns={allColumns} />
+      <TableToolbar table={table} enableGlobalFilter={true} columns={allColumns} />
 
       <div className="rounded-md border">
         <Table>

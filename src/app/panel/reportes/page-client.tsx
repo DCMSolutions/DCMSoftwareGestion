@@ -157,6 +157,16 @@ export default function LockerOcupationPage() {
     let totalAmount = 0;
 
     transactionsData?.forEach((transaction) => {
+      if (lockersSerie && lockersSerie.length > 0) {
+        if (!transaction.reserve || !transaction.reserve.NroSerie) {
+          return;
+        }
+
+        if (!lockersSerie.includes(transaction.reserve.NroSerie)) {
+          return;
+        }
+      }
+
       // Procesar la fecha correctamente
       const date = new Date(transaction.confirmedAt!);
       const adjustedDate = new Date(date);
@@ -178,7 +188,7 @@ export default function LockerOcupationPage() {
       .map(({ day, amount }) => ({ day, amount }));
 
     return { data: result, total: totalAmount };
-  }, [transactionsData]);
+  }, [transactionsData, lockersSerie]);
 
   const COLORS = ["#8884d8", "#82ca9d", "#ffc658"];
 

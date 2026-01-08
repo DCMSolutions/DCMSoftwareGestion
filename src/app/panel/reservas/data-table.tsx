@@ -4,7 +4,6 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   ColumnFiltersState,
   useReactTable,
@@ -12,7 +11,7 @@ import {
 } from "@tanstack/react-table";
 
 import { TableCell } from "~/components/ui/table";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -20,49 +19,68 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/newTable";
-import { ReserveTableRecord, columns } from "./columns";
 import TableToolbar from "~/components/tanstack/table-toolbar";
 import { DataTablePagination } from "~/components/tanstack/pagination";
+import { ReserveInList } from "./reserves-component";
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[];
-  data: TData[];
+interface DataTableProps {
+  columns: ColumnDef<ReserveInList, unknown>[];
+  data: ReserveInList[];
 }
 
-export function DataTable<TData extends ReserveTableRecord>({
+export function DataTable({
   columns,
   data,
-}: DataTableProps<TData, unknown>) {
+}: DataTableProps) {
+  const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  const filteredData = useMemo(() => {
+    if (!globalFilter) {
+      return data;
+    }
+    
+    const search = globalFilter.toLowerCase();
+    return data.filter((item) => {
+      const nReserve = String(item.nReserve ?? "").toLowerCase();
+      const email = String(item.email ?? "").toLowerCase();
+      const client = String(item.client ?? "").toLowerCase();
+      const storeName = String(item.storeName ?? "").toLowerCase();
+
+      return (
+        nReserve.includes(search) || 
+        email.includes(search) || 
+        client.includes(search) ||
+        storeName.includes(search)
+      );
+    });
+  }, [data, globalFilter]);
+
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnFiltersChange: setColumnFilters,
     state: {
       columnFilters,
+      globalFilter,
     },
+    onGlobalFilterChange: setGlobalFilter, 
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
   });
 
-  const handleRowClick = (row: Row<TData>) => {
-    const linked = (link: string) => {
-      window.location.href = link;
-    };
-    linked(`/panel/reservas/${row.getValue("nReserve")}`);
+  const handleRowClick = (row: Row<ReserveInList>) => {
+    window.location.href = `/panel/reservas/${row.getValue("nReserve")}`;
   };
 
   return (
     <div className="w-full p-4 space-y-4">
-      {/* Barra de búsqueda */}
       <TableToolbar
         table={table}
-        searchColumn={"client"}
+        enableGlobalFilter={true}
         columns={table.getAllColumns()}
       />
 
-      {/* Tabla de reservas */}
       <div className="overflow-x-auto rounded-md border shadow-md">
         <Table className="min-w-full divide-y divide-gray-200">
           <TableHeader>
@@ -95,7 +113,7 @@ export function DataTable<TData extends ReserveTableRecord>({
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className=" whitespace-nowrap text-sm font-medium text-gray-900 text-right"
+                      className="whitespace-nowrap text-sm font-medium text-gray-900 text-right"
                     >
                       {flexRender(
                         cell.column.columnDef.cell,

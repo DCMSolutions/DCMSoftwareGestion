@@ -101,29 +101,30 @@ export function MonitorDatatable(props: {
     {
       accessorKey: "id",
       header: "",
-      cell: ({ row }) => (
-        <div className="flex items-center justify-center p-0">
-          {row.getValue("ocupacion") &&
-          (new Date(
+      cell: ({ row }) => {
+        const hasOcupacion = !!row.getValue("ocupacion");
+        const hasFechaVencida = new Date(
             reservas?.find((r) => r.IdBox == row.getValue("id"))?.FechaFin ??
               "",
-          ).getTime() < new Date().getTime() ||
-            !reservas?.find((r) => r.IdBox == row.getValue("id"))?.FechaFin) ? (
+          ).getTime() < new Date().getTime();
+        const hasNoFechaFin = !reservas?.find((r) => r.IdBox == row.getValue("id"))?.FechaFin;
+        const alertCondition = hasOcupacion && (hasFechaVencida || hasNoFechaFin);
+
+        return (
+          <div className="flex items-center justify-end p-0">
             <div className="flex items-center space-x-5">
-              <div className="animate-pulse lowercase">
+              {alertCondition && <div className="animate-pulse lowercase">
                 <AlertCircle color="red" />
-              </div>
+              </div>}
               <GetQR
                 row={row}
                 generatedTokens={generatedTokens}
                 setGeneratedTokens={setGeneratedTokens}
               />
             </div>
-          ) : (
-            ""
-          )}
-        </div>
-      ),
+          </div>
+        )
+      },
     },
     {
       id: "acciones",

@@ -1,4 +1,4 @@
-import { eq, lt, gt, isNotNull, and, isNull, SQL, inArray } from "drizzle-orm";
+import { eq, lt, gt, isNotNull, and, isNull, SQL, inArray, desc } from "drizzle-orm";
 import { z } from "zod";
 import { createId } from "~/lib/utils";
 import { format, startOfDay, endOfDay, isAfter, isBefore } from "date-fns";
@@ -40,6 +40,7 @@ export const reserveRouter = createTRPCRouter({
     checkBoxAssigned();
     const result = await ctx.db.query.reservas.findMany({
       with: { clients: true },
+      orderBy: desc(reservas.FechaCreacion),
       where: (reservas) =>
         and(isNotNull(reservas.nReserve), isNotNull(reservas.Token1)),
     });
@@ -99,6 +100,7 @@ export const reserveRouter = createTRPCRouter({
       where: (reservas) =>
         and(isNotNull(reservas.nReserve), isNotNull(reservas.Token1)),
       with: { clients: true },
+      orderBy: desc(reservas.nReserve),
     });
 
     const now = new Date().getTime() - 3 * 60 * 60 * 1000;

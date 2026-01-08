@@ -78,7 +78,7 @@ dependencies:
     specifier: ^4.36.1
     version: 4.40.1(react-dom@18.2.0)(react@18.2.0)
   '@tanstack/react-table':
-    specifier: ^8.20.5
+    specifier: ^8.21.3
     version: 8.21.3(react-dom@18.2.0)(react@18.2.0)
   '@trpc/client':
     specifier: ^10.45.2

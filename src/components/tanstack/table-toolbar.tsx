@@ -2,51 +2,61 @@
 import React, { useRef } from "react";
 import { Table } from "@tanstack/react-table";
 import { Input } from "../ui/input";
-import { Button } from "../ui/button";
 import { Column } from "@tanstack/react-table";
 
 interface DataTableToolbarProps<TData, TValue> {
   table: Table<TData>;
   searchColumn?: string;
+  enableGlobalFilter?: boolean;
   columns?: Column<TData, TValue>[];
 }
 
-// Definimos el tipo de ref que vamos a usar con Filters
 interface FiltersRef {
   clearFilters: () => void;
 }
 
 export default function TableToolbar<TData, TValue>({
   table,
-  columns,
   searchColumn,
+  enableGlobalFilter,
 }: DataTableToolbarProps<TData, TValue>) {
-  const filtersRef = useRef<FiltersRef>(null); // Ref para el componente Filters
+  const filtersRef = useRef<FiltersRef>(null);
 
   const handleClearFilters = () => {
     if (filtersRef.current) {
-      filtersRef.current.clearFilters(); // Llamamos a la función clearFilters del componente Filters
+      filtersRef.current.clearFilters();
     }
-    table.resetColumnFilters(); // Reseteamos también los filtros de la tabla
+    table.resetColumnFilters();
+    table.resetGlobalFilter();
   };
+
+  const getSearchValue = () => {
+    if (enableGlobalFilter) {
+      return (table.getState().globalFilter as string) ?? "";
+    }
+    return (table.getColumn(searchColumn ?? "")?.getFilterValue() as string) ?? "";
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    if (enableGlobalFilter) {
+      table.setGlobalFilter(value);
+    } else {
+      table.getColumn(searchColumn ?? "")?.setFilterValue(value);
+    }
+  };
+
+  const showInput = enableGlobalFilter || (searchColumn && table.getColumn(searchColumn));
 
   return (
     <div className="flex w-full flex-row items-center justify-between">
-      <div className="relative flex w-full max-w-sm place-content-center  items-center">
-        {searchColumn !== undefined && table.getColumn(searchColumn ?? "") && (
+      <div className="relative flex w-full max-w-sm place-content-center items-center">
+        {showInput && (
           <>
             <Input
               placeholder={`Buscar por ... `}
-              value={
-                (table
-                  .getColumn(searchColumn ?? "")
-                  ?.getFilterValue() as string) ?? ""
-              }
-              onChange={(event) =>
-                table
-                  .getColumn(searchColumn ?? "")
-                  ?.setFilterValue(event.target.value)
-              }
+              value={getSearchValue()}
+              onChange={handleSearchChange}
               className="h-7 w-full rounded-full border-2 border-black p-5 focus-visible:ring-[#BEF0BB]"
             />
             <div className="absolute right-5 h-6 w-6 place-content-center rounded-full">
@@ -56,7 +66,6 @@ export default function TableToolbar<TData, TValue>({
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
                 stroke="#3E3E3E"
-                className=""
               >
                 <path
                   strokeLinecap="round"
@@ -68,7 +77,6 @@ export default function TableToolbar<TData, TValue>({
           </>
         )}
       </div>
-      <div className="flex items-center gap-1"></div>
     </div>
   );
 }

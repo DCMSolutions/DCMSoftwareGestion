@@ -2,15 +2,9 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { ReserveInList } from "./reserves-component";
 
-// Definir el tipo de datos para la tabla de reservas.
-export type ReserveTableRecord = {
-  nReserve: number | null;
-  storeName?: string | null;
-  client: string | null;
-};
-
-export const columns: ColumnDef<ReserveTableRecord>[] = [
+export const columns: ColumnDef<ReserveInList>[] = [
   {
     accessorKey: "nReserve",
     header: "N° Reserva",
