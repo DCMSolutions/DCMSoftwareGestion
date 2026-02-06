@@ -1,7 +1,7 @@
 import { Calendar } from "~/components/ui/calendar";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { DateRange } from "react-day-picker";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import ButtonCustomComponent from "../../../components/buttonCustom";
 import { api } from "~/trpc/react";
 import { Reserve } from "~/server/api/routers/reserves";
@@ -30,6 +30,18 @@ export default function DateComponent({ t, ...props }: {
     email: props.email,
   });
 
+  const minExtensionDate = useMemo(() => {
+    if (!reserve?.FechaFin) {
+      return undefined;
+    }
+
+    const date = new Date(reserve.FechaFin);
+    date.setDate(date.getDate() + 1);
+    // Reset time components to start of day
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, [reserve]);
+
   useEffect(() => {
     if (reserve) {
       setRange({ from: new Date(reserve.FechaFin!) });
@@ -38,12 +50,12 @@ export default function DateComponent({ t, ...props }: {
   }, [reserve, isLoading]);
 
   function getDays() {
-    if (range) {
-      const fromDate = range.from!;
-      const toDate = range.to!;
-      const differenceInTime = toDate?.getTime() - fromDate?.getTime();
-      const differenceInDays = differenceInTime / (1000 * 3600 * 24);
-      props.setDays(differenceInDays);
+    if (props.startDate && props.endDate) {
+      const fromDate = parseISO(props.startDate);
+      const toDate = parseISO(props.endDate);
+      const differenceInTime = toDate.getTime() - fromDate.getTime();
+      const calculatedDays = differenceInTime / (1000 * 3600 * 24);
+      props.setDays(calculatedDays + 1);
     }
   }
 
@@ -75,20 +87,19 @@ export default function DateComponent({ t, ...props }: {
   }
 
   function onlyToday() {
-    const today = new Date(Date.now());
     const nextDay = new Date(range!.from!);
-    nextDay.setTime(nextDay.getTime() + (1000 * 60 * 60 * 24));
+    nextDay.setDate(nextDay.getDate() + 1);
     let start, end;
 
     if (plazoReserva?.value.trim().toLowerCase() === "true") {
       const nextNextDay = new Date(nextDay.getTime());
-      nextNextDay.setDate(nextNextDay.getTime() + (1000 * 60 * 60 * 24));
+      nextNextDay.setDate(nextNextDay.getDate() + 1);
 
       start = format(nextDay, "yyyy-MM-dd'T'HH:mm:ss");
       end = format(nextNextDay, "yyyy-MM-dd'T'HH:mm:ss");
     } else {
       start = format(nextDay, "yyyy-MM-dd'T'00:00:00");
-      end = format(today, "yyyy-MM-dd'T'23:59:59");
+      end = format(nextDay, "yyyy-MM-dd'T'23:59:59");
     }
 
     console.log("date range", start, end);
@@ -114,12 +125,17 @@ export default function DateComponent({ t, ...props }: {
                 selected={range}
                 onSelect={(e) => {
                   const toDate = e?.to!;
-                  const days = differenceInDays(toDate, range?.from!);
-                  props.setDays(days + 1);
+                  if (minExtensionDate && toDate >= minExtensionDate) {
+                    const calculatedDays = differenceInDays(toDate, minExtensionDate);
+                    props.setDays(calculatedDays + 1);
+                  } else {
+                    props.setDays(0);
+                  }
+
                   setRange({ to: e?.to!, from: range?.from });
                 }}
                 numberOfMonths={2}
-                disabled={(date) => date < new Date()}
+                disabled={(date) => date < new Date() || (!!minExtensionDate && date < minExtensionDate)}
                 initialFocus
                 locale={es}
               />
