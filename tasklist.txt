@@ -1,0 +1,2 @@
+- implementar usuarios. *
+- pasar todos los tokens al mail y enviar algo más lindo.

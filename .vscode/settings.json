@@ -1,0 +1,9 @@
+{
+  "search.exclude": {
+    "**/*.code-search": false,
+    "**/node_modules": false
+  },
+  "files.exclude": {
+    "**/.git": false
+  }
+}
