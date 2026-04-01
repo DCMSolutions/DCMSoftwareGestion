@@ -1,4 +1,4 @@
-import { eq, lt, gt, isNotNull, and, isNull, SQL, inArray } from "drizzle-orm";
+import { eq, lt, gt, isNotNull, and, isNull, SQL, inArray, gte } from "drizzle-orm";
 import { z } from "zod";
 import { createId } from "~/lib/utils";
 import { format, startOfDay, endOfDay, isAfter, isBefore } from "date-fns";
@@ -68,28 +68,22 @@ export const reserveRouter = createTRPCRouter({
     await trpcTienePermisoCtx(ctx, "panel:reservas");
     checkBoxAssigned(ctx.orgId ?? "");
 
+    const now = new Date();
+    now.setHours(now.getHours() - 3); // UTC-3
+    const startOfDayIso = startOfDay(now).toISOString();
+
     const result = await db.query.reservas.findMany({
       where: (reservas) =>
         and(
           isNotNull(reservas.nReserve),
           isNotNull(reservas.Token1),
-          eq(schema.reservas.entidadId, ctx.orgId ?? "")
+          eq(schema.reservas.entidadId, ctx.orgId ?? ""),
+          gte(reservas.FechaFin, startOfDayIso),
         ),
       with: { clients: true },
     });
 
-    const now = new Date().getTime() - 3 * 60 * 60 * 1000;
-
-    // Obtener el inicio y fin del día utilizando la configuración de idioma español
-    const startOfDayLocale = startOfDay(now);
-    const endOfDayLocale = endOfDay(now);
-
-    const actives = result.filter((x) => {
-      const fechaFin = new Date(x.FechaFin!);
-      return isAfter(fechaFin, startOfDayLocale);
-    });
-
-    const groupedByNReserve = actives.reduce((acc: any, reserva) => {
+    const groupedByNReserve = result.reduce((acc: any, reserva) => {
       const nReserve = reserva.nReserve!;
       if (!acc[nReserve]) {
         acc[nReserve] = [];
@@ -110,11 +104,9 @@ export const reserveRouter = createTRPCRouter({
     .query(async ({ input, ctx }) => {
       await trpcTienePermisoCtx(ctx, "panel:reservas");
 
-      // Evita llamadas innecesarias si `nReserve` es inválido
       if (!input.nReserve) throw new Error("Invalid nReserve");
       checkBoxAssigned(ctx.orgId ?? "");
 
-      // Consulta optimizada
       const reserve = await db.query.reservas.findMany({
         where: (reservas) =>
           and(
@@ -140,7 +132,6 @@ export const reserveRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       checkBoxAssigned(input.entityId);
 
-      // Consulta optimizada
       const reserve = await db.query.reservas.findMany({
         where: (reservas) =>
           and(
@@ -176,11 +167,11 @@ export const reserveRouter = createTRPCRouter({
             eq(schema.reservas.entidadId, input.entityId),
           ),
         orderBy: (reservas, { desc }) => [desc(reservas.FechaCreacion)],
-
         with: { clients: true },
       });
       return reserve as Reserve;
     }),
+
   getByClient: protectedProcedure
     .input(
       z.object({
@@ -189,32 +180,40 @@ export const reserveRouter = createTRPCRouter({
     )
     .query(async ({ input, ctx }) => {
       await trpcTienePermisoCtx(ctx, "panel:clientes");
-      
       checkBoxAssigned(ctx.orgId ?? "");
-      const result = await ctx.db.query.reservas.findMany({
-        with: { clients: true },
-        where: (reservas) =>
-          and(isNotNull(reservas.nReserve), isNotNull(reservas.Token1)),
-      });
+
       const client = await db.query.clients.findFirst({
         where: and(
           eq(schema.clients.identifier, input.clientId),
           eq(schema.clients.entidadId, ctx.orgId ?? ""),
         ),
       });
+
+      if (!client) return {};
+
+      const result = await ctx.db.query.reservas.findMany({
+        with: { clients: true },
+        where: (reservas) =>
+          and(
+            isNotNull(reservas.nReserve),
+            isNotNull(reservas.Token1),
+            eq(schema.reservas.client, client.email ?? ""),
+            eq(schema.reservas.entidadId, ctx.orgId ?? ""),
+          ),
+      });
+
       const groupedByNReserve = result.reduce((acc: any, reserva) => {
         const nReserve = reserva.nReserve!;
         if (!acc[nReserve]) {
           acc[nReserve] = [];
         }
-
-        if (reserva.client == client?.email) {
-          acc[nReserve].push(reserva);
-        }
+        acc[nReserve].push(reserva);
         return acc;
       }, {});
+
       return groupedByNReserve;
     }),
+
   reservesToClients: publicProcedure
     .input(
       z.object({
@@ -291,6 +290,7 @@ export const reserveRouter = createTRPCRouter({
         entidadId: input.entityId,
       });
     }),
+
   updateReserve: protectedProcedure
     .input(
       z.object({
@@ -328,27 +328,25 @@ export const reserveRouter = createTRPCRouter({
           eq(reservas.entidadId, ctx.orgId ?? ""),
         ));
     }),
+
   getLastReserveByBox: protectedProcedure.query(async ({ ctx }) => {
-    // Obtener las reservas ordenadas por FechaFin descendente
-    const reservas = await ctx.db.query.reservas.findMany({
+    const reservasList = await ctx.db.query.reservas.findMany({
       with: { clients: true },
       where: (reservas) => and(
         isNotNull(reservas.IdBox),
         eq(reservas.entidadId, ctx.orgId ?? ""),
       ),
       orderBy: (reservas, { desc }) => [desc(reservas.FechaFin)],
-      // limit: 1, // Si solo necesitas la última reserva por IdBox, usa limit aquí.
     });
 
-    // Agrupar por IdBox y mantener solo la última reserva para cada caja
-    const lastReservesByBox = reservas.reduce((acc, reserva) => {
+    // Mantener solo la última reserva por IdBox (primera tras ORDER BY FechaFin DESC)
+    const lastReservesByBox = reservasList.reduce((acc, reserva) => {
       if (!acc.has(reserva.IdBox!)) {
-        acc.set(reserva.IdBox!, reserva); // Mantener la primera reserva encontrada para el box
+        acc.set(reserva.IdBox!, reserva);
       }
       return acc;
-    }, new Map<number, (typeof reservas)[number]>());
+    }, new Map<number, (typeof reservasList)[number]>());
 
-    // Convertir Map a un arreglo de valores
     return Array.from(lastReservesByBox.values());
   }),
 });
@@ -371,54 +369,45 @@ export async function checkBoxAssigned(entityId: string) {
   if (!tkValue) {
     throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: "Sin token de empresa" });
   }
-  
-  // Realiza una solicitud a la API para obtener los datos de lockers asignados por empresa.
+
   const locerResponse = await fetch(
     `${env.SERVER_URL}/api/locker/byTokenEmpresa/${env.TOKEN_EMPRESA}`,
   );
 
   const reservedBoxData = await locerResponse.json();
 
-  // Verifica si la respuesta de la API fue exitosa
   if (!locerResponse.ok) {
     const errorResponse = reservedBoxData;
-    return { error: errorResponse.message || "Unknown error" }; // Devuelve un error si la respuesta no fue exitosa
+    return { error: errorResponse.message || "Unknown error" };
   }
 
-  // Valida los datos obtenidos usando un esquema predefinido con Zod
   const validatedData = z.array(lockerValidator).safeParse(reservedBoxData);
   if (!validatedData.success) {
-    throw null; // Lanza un error si los datos no cumplen con el esquema definido
+    throw null;
   }
 
-  // Inicializa un array para acumular las consultas de actualización en lote
-  const batchUpdates: any = [];
+  const updatePromises: Promise<any>[] = [];
 
-  // Procesa cada locker obtenido en los datos validados
   validatedData.data.forEach((locker) => {
-    // Itera sobre los tokens asociados al locker
     locker.tokens?.forEach((token) => {
       if (token.idBox != null) {
-        // Busca el identificador físico (idFisico) asociado al idBox del token
         const idFisico = locker.boxes.find(
           (box) => box.id == token.idBox,
         )?.idFisico;
 
-        // Valida el token1 asegurándose de que sea un número válido
         const token1Value = parseInt(token.token1 ?? "0");
         if (!Number.isFinite(token1Value)) {
           console.error(`Valor de token1 no válido: ${token.token1}`);
-          return; // Si el token no es válido, se detiene el procesamiento de este token
+          return;
         }
 
-        // Crea la consulta de actualización para este token y la agrega al array de batchUpdates
-        batchUpdates.push(
+        updatePromises.push(
           db
-            .update(schema.reservas) // Define la tabla donde se realizará la actualización
-            .set({ IdFisico: idFisico, IdBox: token.idBox }) // Especifica los valores a actualizar
+            .update(schema.reservas)
+            .set({ IdFisico: idFisico, IdBox: token.idBox })
             .where(
               and(
-                eq(schema.reservas.Token1!, token1Value), // Coincide con el token1
+                eq(schema.reservas.Token1!, token1Value),
               ),
             ),
         );
@@ -426,12 +415,10 @@ export async function checkBoxAssigned(entityId: string) {
     });
   });
 
-  // Ejecuta todas las actualizaciones en la base de datos como un lote
   try {
-    await db.batch(batchUpdates); // Realiza la actualización en lote
-    console.log("Actualizaciones en lote completadas con éxito.");
+    await Promise.all(updatePromises);
+    console.log("Actualizaciones completadas con éxito.");
   } catch (error) {
-    // Maneja errores que puedan ocurrir durante las actualizaciones
-    console.error("Error durante las actualizaciones en lote:", error);
+    console.error("Error durante las actualizaciones:", error);
   }
 }

@@ -1,4 +1,4 @@
-import { and, gte, lte, isNotNull, eq } from "drizzle-orm";
+import { and, gte, lte, isNotNull, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
 import { db, schema } from "~/server/db";
@@ -61,26 +61,22 @@ export const reportsRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const { startDate, endDate } = input;
 
-      // Get reservations within the date range with assigned lockers
-      let reserves = await db.query.reservas.findMany({
-        where: (reserva) =>
-          and(
+      const reserves = await db.query.reservas.findMany({
+        where: (reserva) => {
+          const conditions = [
             gte(reserva.FechaInicio, startDate),
             lte(reserva.FechaFin, endDate),
             isNotNull(reserva.nReserve),
-            // isNotNull(reserva.IdBox),
-          ),
+          ];
+          if (Array.isArray(input.filterSerie) && input.filterSerie.length > 0) {
+            conditions.push(inArray(reserva.NroSerie, input.filterSerie));
+          }
+          if (Array.isArray(input.filterEntities) && input.filterEntities.length > 0) {
+            conditions.push(inArray(reserva.entidadId, input.filterEntities));
+          }
+          return and(...conditions);
+        },
       });
-
-      if (Array.isArray(input.filterSerie)) {
-        const validSeries = new Set(input.filterSerie);
-        reserves = reserves.filter(v => validSeries.has(v.NroSerie ?? ""));
-      }
-
-      if (Array.isArray(input.filterEntities)) {
-        const validEnts = new Set(input.filterEntities);
-        reserves = reserves.filter(v => validEnts.has(v.entidadId ?? ""));
-      }
 
       const sizeMap = await getSizesMap(input.filterEntities);
       const occupationData = groupOccupationDataByDay(reserves, sizeMap);
@@ -116,7 +112,6 @@ export const reportsRouter = createTRPCRouter({
       throw new Error("Invalid locker data");
     }
 
-    // Agrupa todos los lockers por tamaño
     const boxCountsBySize: { [sizeName: string]: number } = {};
 
     validatedData.data.forEach((locker) => {
@@ -149,29 +144,25 @@ export const reportsRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const { startDate, endDate } = input;
 
-      // Fetch reservations within the date range with valid start and end dates
-      let reserves = await db.query.reservas.findMany({
-        where: (reserva) =>
-          and(
+      const reserves = await db.query.reservas.findMany({
+        where: (reserva) => {
+          const conditions = [
             gte(reserva.FechaInicio, startDate),
             lte(reserva.FechaFin, endDate),
             isNotNull(reserva.FechaInicio),
             isNotNull(reserva.FechaFin),
             isNotNull(reserva.nReserve),
-          ),
+          ];
+          if (Array.isArray(input.filterSerie) && input.filterSerie.length > 0) {
+            conditions.push(inArray(reserva.NroSerie, input.filterSerie));
+          }
+          if (Array.isArray(input.filterEntities) && input.filterEntities.length > 0) {
+            conditions.push(inArray(reserva.entidadId, input.filterEntities));
+          }
+          return and(...conditions);
+        },
       });
 
-      if (Array.isArray(input.filterSerie)) {
-        const validSeries = new Set(input.filterSerie);
-        reserves = reserves.filter(v => validSeries.has(v.NroSerie ?? ""));
-      }
-
-      if (Array.isArray(input.filterEntities)) {
-        const validEnts = new Set(input.filterEntities);
-        reserves = reserves.filter(v => validEnts.has(v.entidadId ?? ""));
-      }
-
-      // Calculate the duration of each reservation in days and accumulate data by duration
       const durationMap: { [duration: number]: number } = {};
       let totalReservations = 0;
       let totalDays = 0;
@@ -184,7 +175,6 @@ export const reportsRouter = createTRPCRouter({
             (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
           );
 
-          // Update the duration map and counters
           durationMap[duration] = (durationMap[duration] || 0) + 1;
           totalReservations += 1;
           totalDays += duration;
@@ -194,7 +184,6 @@ export const reportsRouter = createTRPCRouter({
       const averageDuration =
         totalReservations > 0 ? totalDays / totalReservations : 0;
 
-      // Format result to match the expected output for the chart and table
       const durationData = Object.entries(durationMap).map(([days, count]) => ({
         days: parseInt(days),
         reservations: count,
@@ -211,15 +200,15 @@ export const reportsRouter = createTRPCRouter({
 // Helper functions
 
 async function getSizesMap(entitiesFilter: string[] | null): Promise<SizeMap> {
-  let sizesData = await db.query.sizes.findMany();
-  if (entitiesFilter) {
-    sizesData = sizesData.filter(v => entitiesFilter.some(k => k === v.entidadId));
-  }
-  
-  const sizeMap: { [id: number]: string } = {};
+  const sizesData = await db.query.sizes.findMany({
+    where: entitiesFilter && entitiesFilter.length > 0
+      ? inArray(schema.sizes.entidadId, entitiesFilter)
+      : undefined,
+  });
 
+  const sizeMap: { [id: number]: string } = {};
   sizesData.forEach((size) => {
-    sizeMap[size.id] = size.nombre || "Unknown"; // Fallback to "Unknown" if nombre is null
+    sizeMap[size.id] = size.nombre || "Unknown";
   });
 
   return sizeMap;
@@ -229,7 +218,7 @@ function groupOccupationDataByDay(reserves: Reserve[], sizeMap: SizeMap) {
   const occupationData: DailyOccupation[] = [];
 
   reserves.forEach((reserve) => {
-    if (!reserve.FechaInicio) return; // Skip if FechaInicio is null
+    if (!reserve.FechaInicio) return;
 
     const date = new Date(reserve.FechaInicio);
     const dayKey = `${date.getDate()}/${date.getMonth() + 1}`;
@@ -267,7 +256,7 @@ function formatBillingData(transactions: Transaction[]) {
   transactions.forEach((transaction) => {
     if (transaction.confirmedAt) {
       const date = new Date(transaction.confirmedAt);
-      const formattedDate = `${date.getDate()}/${date.getMonth() + 1}`; // Format "day/month"
+      const formattedDate = `${date.getDate()}/${date.getMonth() + 1}`;
       const amount = transaction.amount || 0;
       billingMap[formattedDate] = (billingMap[formattedDate] || 0) + amount;
     }
